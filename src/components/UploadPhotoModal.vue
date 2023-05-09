@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { supabase } from '@/supabase'
 import { useUserStore } from '@/stores/users'
 import { storeToRefs } from 'pinia'
 import type { Post } from '@/types'
@@ -16,6 +15,7 @@ const { user, errorMessage, successMessage } = storeToRefs(userStore)
 const visible = ref<boolean>(false)
 const caption = ref('')
 const file = ref<File | null>()
+const myData = new FormData()
 const loading = ref(false)
 const input = ref<HTMLInputElement>()
 
@@ -29,34 +29,31 @@ watch(file, () => {
 
 const handleOk = async () => {
   loading.value = true
-  const fileName = Math.floor(Math.random() * 100000000000)
-  if(file.value) {
-    const { data, error } = await supabase.storage.from('images').upload('public/' + fileName, file.value)
-
-    if (error) {
-      loading.value = false
-      errorMessage.value = error.message
-    }
-    if (data) {
-      const { error } = await supabase.from('posts').insert({
-        url: data.path,
-        caption: caption.value,
-        owner_id: user.value?.id,
-      })
-      if (error) {
+  if (file.value) {
+    myData.append('ownerId', String(user.value?.id))
+    if (caption.value) myData.append('caption', caption.value)
+    if (file.value) myData.append('image', file.value)
+    await fetch('/api/uploadPhoto', {
+      method: 'POST',
+      body: myData,
+    })
+      .then(res => res.json())
+      .then(res => {
         loading.value = false
-        errorMessage.value = error.message
-      } else {
-        successMessage.value = 'Photo successfully uploaded!'
-      }
-      props.addNewPost({
-        url: data.path,
-        caption: caption.value,
+        if (res.error) {
+          loading.value = false
+          errorMessage.value = res.message
+        } else {
+          successMessage.value = res.message
+          file.value = null
+          caption.value = ''
+          visible.value = false
+          props.addNewPost({
+            url: res.data.path,
+            caption: caption.value,
+          })
+        }
       })
-    }
-    file.value = null
-    caption.value = ''
-    visible.value = false
   } else {
     errorMessage.value = 'A file was not selected!'
   }

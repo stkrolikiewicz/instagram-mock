@@ -4,7 +4,6 @@ import { UploadPhotoModal } from '.'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/users'
 import { storeToRefs } from 'pinia'
-import { supabase } from '@/supabase'
 import { ref } from 'vue'
 import { UserAddOutlined } from '@ant-design/icons-vue'
 
@@ -23,22 +22,28 @@ const loading = ref(false)
 
 const followUser = async () => {
   loading.value = true
-  await supabase
-    .from('followers_following')
-    .insert({
-      follower_id: user.value?.id,
-      following_id: props.userInfo?.id,
+  await fetch('/api/followUser', {
+    method: 'POST',
+    body: JSON.stringify({
+      followerId: user.value?.id,
+      followingId: props.userInfo?.id,
+    }),
+  })
+    .then(() => {
+      props.updateIsFollowing(true)
     })
-    .then(() => props.updateIsFollowing(true))
-
   loading.value = false
 }
+
 const unFollowUser = async () => {
   loading.value = true
-  await supabase.from('followers_following').delete(
-  )
-    .eq('follower_id', user.value?.id)
-    .eq('following_id',props.userInfo?.id)
+  await fetch('/api/unFollowUser', {
+    method: 'POST',
+    body: JSON.stringify({
+      followerId: user.value?.id,
+      followingId: props.userInfo?.id,
+    }),
+  })
     .then(() => props.updateIsFollowing(false))
 
   loading.value = false

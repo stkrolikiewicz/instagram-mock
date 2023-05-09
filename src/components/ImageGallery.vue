@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { Post } from '@/types'
-const { VITE_BASE_PHOTO_URL } = import.meta.env
 
 defineProps<{
-  posts: Post[]
+  posts: Post[],
+  baseUrl: string
 }>()
 </script>
 
@@ -16,7 +16,7 @@ defineProps<{
       class="image-container"
     >
       <img
-        :src="VITE_BASE_PHOTO_URL + post.url"
+        :src="baseUrl + post.url"
         alt=""
       >
     </div>
