@@ -4,3 +4,7 @@
   from = '/api/*'
   to = '/.netlify/functions/:splat'
   status = 200
+[[headers]]
+  for = "/api/uploadPhoto"
+  [headers.values]
+    Content-Type = "multipart/form-data"

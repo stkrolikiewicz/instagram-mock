@@ -1,0 +1,2 @@
+/api/uploadPhoto
+  Content-Type: multipart/form-data
