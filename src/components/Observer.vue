@@ -7,7 +7,6 @@ const observer = ref<IntersectionObserver>()
 const root = ref<Element>()
 
 onMounted(() => {
-  console.log(root.value)
   observer.value = new IntersectionObserver(([entry]) => {
     if(entry && entry.isIntersecting) {
       emits('intersect')

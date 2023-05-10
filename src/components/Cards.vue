@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { supabase } from '@/supabase'
 import { Card, Observer } from '.'
 import { useUserStore } from '@/stores/users'
 import { storeToRefs } from 'pinia'
@@ -14,50 +13,44 @@ const lastCardIndex = ref(postsPerSet - 1)
 const reachEnd = ref(false)
 
 const fetchData = async () => {
-  const { data: following } = await supabase
-    .from('followers_following')
-    .select('following_id')
-    .eq('follower_id', user.value?.id)
-  
-  const owners_ids: number[] = following?.map(f => f.following_id) || []
-
-  const { data: posts } = await supabase
-    .from('posts')
-    .select()
-    .in('owner_id', owners_ids)
-    .range(lastCardIndex.value - postsPerSet - 1,lastCardIndex.value)
-    .order('created_at', { ascending: false })
-
-  return posts
+  await fetch('/api/initialData', {
+    method: 'POST',
+    body: JSON.stringify({
+      userId: user.value?.id,
+      lastCardIndex: lastCardIndex.value,
+      postsPerSet: postsPerSet,
+    }),
+  })
+    .then(res => res.json())
+    .then(res => posts.value = res.data.posts)
 }
 
 const fetchNextSet = async () => {
-  const { data: following } = await supabase
-    .from('followers_following')
-    .select('following_id')
-    .eq('follower_id', user.value?.id)
-  
-  const owners_ids: number[] = following?.map(f => f.following_id) || []
+  await fetch('/api/nextSet', {
+    method: 'POST',
+    body: JSON.stringify({
+      userId: user.value?.id,
+      lastCardIndex: lastCardIndex.value,
+      postsPerSet: postsPerSet,
+    }),
+  })
+    .then(res => res.json())
+    .then(res => {
+      if (res.data.nextPosts?.length && posts.value) {
+        posts.value = [
+          ...posts.value,
+          ...res.data.nextPosts,
+        ]
+        lastCardIndex.value += postsPerSet
+      } else {
+        reachEnd.value = true
+      }
+    })
 
-  const { data: nextPosts } = await supabase
-    .from('posts')
-    .select()
-    .in('owner_id', owners_ids)
-    .range(lastCardIndex.value + 1 ,lastCardIndex.value + postsPerSet)
-    .order('created_at', { ascending: false })
-  if (nextPosts?.length && posts.value) {
-    posts.value = [
-      ...posts.value,
-      ...nextPosts,
-    ]
-    lastCardIndex.value += postsPerSet
-  } else {
-    reachEnd.value = true
-  }
 }
 
 onMounted(() => {
-  fetchData().then(res => posts.value = res || [])
+  fetchData()
 })
 </script>
 
