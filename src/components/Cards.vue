@@ -46,7 +46,6 @@ const fetchNextSet = async () => {
         reachEnd.value = true
       }
     })
-
 }
 
 onMounted(() => {
