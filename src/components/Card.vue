@@ -1,10 +1,24 @@
 <script setup lang="ts">
 import type { Post } from '@/types'
-const { VITE_BASE_PHOTO_URL } = import.meta.env
+import { onMounted, ref } from 'vue'
 
 defineProps<{
   card: Post
 }>()
+
+const BASE_IMAGE_URL = ref('')
+
+onMounted(() => {
+  fetchBaseURL()
+})
+
+const fetchBaseURL = async () => {
+  await fetch('/api/baseImageURL')
+    .then(res => res.json())
+    .then(res => {
+      BASE_IMAGE_URL.value = res.url
+    })
+}
 </script>
 
 <template>
@@ -15,7 +29,7 @@ defineProps<{
     <template #cover>
       <img
         :alt="card.name"
-        :src="VITE_BASE_PHOTO_URL + card.url"
+        :src="BASE_IMAGE_URL + card.url"
       >
     </template>
     <ACardMeta :title="card.caption">
