@@ -41,7 +41,11 @@ function parseMultipartForm(event): Promise<Fields> {
       resolve(fields)
     })
 
-    bb.end(Buffer.from(event.body, 'base64'))
+    if (!event.isbase64Encoded) {
+      bb.end(Buffer.from(event.body, 'base64'))
+    } else {
+      bb.end(event.body)
+    }
   })
 }
 function toArrayBuffer(buffer) {
@@ -65,7 +69,8 @@ exports.handler = async (event) => {
       )
   
     if (image && fields) {
-      const { data, error: uploadError } = await supabase.storage.from('images').upload('public/' + fileName, image, {
+      const base64Data = Buffer.from(image).toString('base64')
+      const { data, error: uploadError } = await supabase.storage.from('images').upload('public/' + fileName, Buffer.from(base64Data, 'base64'), {
         contentType: 'image/png',
       })
     
@@ -73,7 +78,7 @@ exports.handler = async (event) => {
         return {
           statusCode: 400,
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'text/plain; charset=utf-8',
           },
           body: JSON.stringify({
             error: uploadError,
@@ -93,7 +98,7 @@ exports.handler = async (event) => {
         return {
           statusCode: 400,
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'text/plain; charset=utf-8',
           },
           body: JSON.stringify({
             error: insertError,
@@ -106,7 +111,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain; charset=utf-8',
         },
         body: JSON.stringify(
           {
@@ -122,7 +127,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 400,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain; charset=utf-8',
         },
         body: JSON.stringify({
           error: new Error('No image found'),
@@ -134,6 +139,9 @@ exports.handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 400,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+      },
       body: JSON.stringify({
         error: error,
         message: error.message,

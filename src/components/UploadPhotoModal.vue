@@ -30,34 +30,45 @@ watch(file, () => {
 const handleOk = async () => {
   loading.value = true
   if (file.value) {
-    myData.append('ownerId', String(user.value?.id))
-    if (caption.value) myData.append('caption', caption.value)
-    if (file.value) myData.append('image', file.value)
-    await fetch('/api/uploadPhoto', {
-      method: 'POST',
-      body: myData,
-    })
-      .then(res => res.json())
-      .then(res => {
-        console.log
-        loading.value = false
-        if (res.error) {
-          loading.value = false
-          errorMessage.value = res.message
-        } else {
-          successMessage.value = res.message
-          file.value = null
-          caption.value = ''
-          visible.value = false
-          props.addNewPost({
-            url: res.data.path,
-            caption: caption.value,
-          })
-        }
-        myData.delete('ownerId')
-        myData.delete('caption')
-        myData.delete('image')
+    if (file.value.size > 500000) {
+      console.log(file.value.size)
+      errorMessage.value = 'A file is too big! Maximum size of file can be 500KB!'
+    }
+    else {
+      myData.append('ownerId', String(user.value?.id))
+      if (caption.value) myData.append('caption', caption.value)
+      if (file.value) myData.append('image', file.value)
+      await fetch('/api/uploadPhoto', {
+        method: 'POST',
+        body: myData,
       })
+        .then(res => res.json())
+        .then(res => {
+          console.log
+          loading.value = false
+          if (res.error) {
+            loading.value = false
+            errorMessage.value = res.message
+          } 
+          else if (res.errorMessage) {
+            loading.value = false
+            errorMessage.value = res.errorMessage
+          }
+          else {
+            successMessage.value = res.message
+            file.value = null
+            caption.value = ''
+            visible.value = false
+            props.addNewPost({
+              url: res.data.path,
+              caption: caption.value,
+            })
+          }
+          myData.delete('ownerId')
+          myData.delete('caption')
+          myData.delete('image')
+        })
+    }
   } else {
     errorMessage.value = 'A file was not selected!'
   }
@@ -66,6 +77,9 @@ const handleOk = async () => {
 
 const handleUploadChange = (e: Event) => {
   const target = e.target as HTMLInputElement
+  myData.delete('ownerId')
+  myData.delete('caption')
+  myData.delete('image')
   if (target.files && target.files[0]) {
     file.value = target.files[0]
   } else file.value = null
@@ -107,6 +121,7 @@ const handleUploadChange = (e: Event) => {
           type="file"
           required
           accept=".jpg,.png,.avif"
+          max-size="1000000"
           @change="handleUploadChange"
         >
         <AInput
