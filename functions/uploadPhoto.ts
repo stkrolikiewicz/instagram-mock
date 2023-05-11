@@ -32,7 +32,7 @@ function parseMultipartForm(event): Promise<Fields> {
         fields[name].push({
           filename,
           type: mimeType,
-          content: data,
+          content:  toArrayBuffer(data),
         })
       })
     })
@@ -52,55 +52,84 @@ function toArrayBuffer(buffer) {
   }
   return ab
 }
+
 exports.handler = async (event) => {
   try {
-    const fields = await parseMultipartForm(event)
-
-    if (!fields) {
-      throw new Error('Unable to parse image')
-    }
-
-    const image = fields.image[0].content
-    const fileName = Math.floor(Math.random() * 100000000000)
-    const { data, error: uploadError } = await supabase.storage.from('images').upload('public/' + fileName, toArrayBuffer(image), {
-      contentType: 'image/png',
-    })
-
-    if (uploadError) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: uploadError,
-          message: uploadError.message,
-        }),
+    let image, fileName, fields
+    await parseMultipartForm(event)
+      .then((res) => {
+        fields = res
+        image = fields.image[0].content
+        fileName = Math.floor(Math.random() * 100000000000)
+      },
+      )
+  
+    if (image && fields) {
+      const { data, error: uploadError } = await supabase.storage.from('images').upload('public/' + fileName, image, {
+        contentType: 'image/png',
+      })
+    
+      if (uploadError) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            error: uploadError,
+            message: uploadError.message,
+            data: null,
+          }),
+        }
       }
-    }
-
-    const { error: insertError } = await supabase.from('posts').insert({
-      url: data.path,
-      caption: fields.caption,
-      owner_id: parseInt(fields.owner_id),
-    })
-
-    if (insertError) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: insertError,
-          message: insertError.message,
-        }),
+    
+      const { error: insertError } = await supabase.from('posts').insert({
+        url: data.path,
+        caption: fields.caption,
+        owner_id: parseInt(fields.owner_id),
+      })
+    
+      if (insertError) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            error: insertError,
+            message: insertError.message,
+            data: null,
+          }),
+        }
       }
-    }
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        error: null,
-        message: 'Image uploaded successfully!',
-        data: {
-          path: `public/${fileName}`,
+    
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
         },
-      }),
+        body: JSON.stringify(
+          {
+            error: null,
+            message: 'Image uploaded successfully!',
+            data: {
+              path: 'public/' + fileName,
+            },
+          },
+        ),
+      }
+    } else {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: new Error('No image found'),
+          message: 'No image found',
+          data: null,
+        }),
+      }
     }
   } catch (error) {
     return {
@@ -108,6 +137,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         error: error,
         message: error.message,
+        data: null,
       }),
     }
   }

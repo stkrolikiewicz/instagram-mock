@@ -39,6 +39,7 @@ const handleOk = async () => {
     })
       .then(res => res.json())
       .then(res => {
+        console.log
         loading.value = false
         if (res.error) {
           loading.value = false
@@ -53,6 +54,9 @@ const handleOk = async () => {
             caption: caption.value,
           })
         }
+        myData.delete('ownerId')
+        myData.delete('caption')
+        myData.delete('image')
       })
   } else {
     errorMessage.value = 'A file was not selected!'

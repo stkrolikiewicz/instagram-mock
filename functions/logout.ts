@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-exports.handler = async event => {
+exports.handler = async () => {
   let statusCode, statusText
 
   const { error } = await supabase.auth.signOut()
